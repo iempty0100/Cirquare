@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Install CirQuare
+Comment=Install CirQuare to your hard drive
+Exec=sudo calamares
+Icon=calamares
+Terminal=false
+Categories=System;

@@ -1,0 +1,9 @@
+NAME="CirQuare"
+PRETTY_NAME="CirQuare Linux"
+ID=cirquare
+ID_LIKE=arch
+BUILD_ID=rolling
+ANSI_COLOR="38;2;23;147;209"
+HOME_URL="https://example.com"
+DOCUMENTATION_URL="https://example.com"
+LOGO=archlinux-logo

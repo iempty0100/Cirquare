@@ -1,0 +1,36 @@
+---
+componentName: cirquare
+
+welcomeStyleCalamares: true
+welcomeExpandingLogo: true
+
+windowExpanding: normal
+windowSize: 800px,520px
+windowPlacement: center
+
+sidebar: widget
+navigation: widget
+
+strings:
+    productName: "CirQuare"
+    shortProductName: "CirQuare"
+    version: "2026.07"
+    shortVersion: "2026.07"
+    versionedName: "CirQuare 2026.07"
+    shortVersionedName: "CirQuare 2026.07"
+    bootloaderEntryName: "CirQuare"
+    productUrl: "https://example.com"
+    supportUrl: "https://example.com"
+    releaseNotesUrl: "https://example.com"
+
+images:
+    productLogo: "logo.png"
+    productIcon: "logo.png"
+    productWelcome: "welcome.png"
+
+style:
+   sidebarBackground: "#1a1a2e"
+   sidebarText: "#ffffff"
+   sidebarTextSelect: "#16a5e6"
+
+slideshow: "show.qml"
