@@ -1,0 +1,9 @@
+[Trigger]
+Operation = Install
+Type = Package
+Target = xfdesktop
+
+[Action]
+Description = Removing default XFCE wallpapers...
+When = PostTransaction
+Exec = /usr/bin/rm -rf /usr/share/backgrounds/xfce
