@@ -17,5 +17,5 @@ bootstrap_tarball_compression=(xz -9e)
 file_permissions=(
   ["/etc/shadow"]="0:0:400"
   ["/usr/local/bin/cirquare-postinstall.sh"]="0:0:755"
-  ["/usr/local/bin/cirquare-set-wallpaper.sh"]="0:0:755"
+  ["/usr/local/bin/cirquare-set-theme.sh"]="0:0:755"
 )

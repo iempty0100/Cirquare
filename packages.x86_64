@@ -69,3 +69,6 @@ kpmcore
 parted
 squashfs-tools
 xorg-xrandr
+# theme
+gnome-themes-extra
+papirus-icon-theme

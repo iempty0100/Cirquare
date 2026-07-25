@@ -1,0 +1,10 @@
+[Icon Theme]
+Name=CirQuare
+Comment=CirQuare Icon Theme
+Inherits=Papirus-Dark,hicolor
+Directories=places/scalable
+
+[places/scalable]
+Size=48
+Context=Places
+Type=Scalable

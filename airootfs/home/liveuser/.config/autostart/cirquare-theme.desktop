@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=CirQuare Theme Setup
+Exec=/usr/local/bin/cirquare-set-theme.sh
+OnlyShowIn=XFCE;
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
