@@ -21,3 +21,6 @@ local-repo/
 .DS_Store
 work/x86_64/
 work/pkglist.x86_64.txt
+
+# Rust
+cqde/target/

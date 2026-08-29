@@ -1,0 +1,302 @@
+use std::sync::Arc;
+use std::time::Duration;
+
+use calloop::EventLoop;
+
+use smithay::{
+    delegate_compositor, delegate_seat, delegate_shm, delegate_xdg_shell,
+    input::{Seat, SeatHandler, SeatState},
+    wayland::{
+        buffer::BufferHandler,
+        compositor::{CompositorClientState, CompositorHandler, CompositorState},
+        shell::xdg::{
+            PopupSurface, PositionerState, ToplevelSurface, XdgShellHandler, XdgShellState,
+        },
+        shm::{ShmHandler, ShmState},
+        socket::ListeningSocketSource,
+    },
+};
+
+use wayland_protocols::xdg::shell::server::xdg_toplevel;
+
+use wayland_server::{
+    Client, Display, DisplayHandle, Resource,
+    backend::ClientData,
+    protocol::{wl_buffer::WlBuffer, wl_seat::WlSeat, wl_surface::WlSurface},
+};
+
+use smithay::utils::Serial;
+
+// ============================================================
+// Client state
+// ============================================================
+
+struct ClientState {
+    compositor_state: CompositorClientState,
+}
+
+impl ClientData for ClientState {}
+
+// ============================================================
+// CQDE state
+// ============================================================
+
+struct State {
+    display_handle: DisplayHandle,
+
+    compositor_state: CompositorState,
+
+    shm_state: ShmState,
+
+    xdg_shell_state: XdgShellState,
+
+    seat_state: SeatState<Self>,
+
+    seat: Seat<Self>,
+}
+
+// ============================================================
+// Compositor
+// ============================================================
+
+impl CompositorHandler for State {
+    fn compositor_state(&mut self) -> &mut CompositorState {
+        &mut self.compositor_state
+    }
+
+    fn client_compositor_state<'a>(&self, client: &'a Client) -> &'a CompositorClientState {
+        &client
+            .get_data::<ClientState>()
+            .expect("ClientState missing")
+            .compositor_state
+    }
+
+    fn commit(&mut self, surface: &WlSurface) {
+        println!("Surface committed: {:?}", surface.id());
+    }
+}
+
+// ============================================================
+// SHM
+// ============================================================
+
+impl ShmHandler for State {
+    fn shm_state(&self) -> &ShmState {
+        &self.shm_state
+    }
+}
+
+// ============================================================
+// Buffer
+// ============================================================
+
+impl BufferHandler for State {
+    fn buffer_destroyed(&mut self, buffer: &WlBuffer) {
+        println!("SHM buffer destroyed: {:?}", buffer.id());
+    }
+}
+
+// ============================================================
+// XDG Shell
+// ============================================================
+
+impl XdgShellHandler for State {
+    fn xdg_shell_state(&mut self) -> &mut XdgShellState {
+        &mut self.xdg_shell_state
+    }
+
+    fn new_toplevel(&mut self, surface: ToplevelSurface) {
+        println!(
+            "New toplevel surface created: {:?}",
+            surface.wl_surface().id()
+        );
+
+        // 새 창을 활성화 상태로 설정
+        surface.with_pending_state(|state| {
+            state.states.set(xdg_toplevel::State::Activated);
+        });
+
+        // 클라이언트에게 configure 전송
+        surface.send_configure();
+
+        println!("Configure sent.");
+    }
+
+    fn new_popup(&mut self, surface: PopupSurface, _positioner: PositionerState) {
+        println!("New popup surface created: {:?}", surface.wl_surface().id());
+    }
+
+    fn grab(&mut self, _surface: PopupSurface, _seat: WlSeat, _serial: Serial) {
+        println!("Popup grab requested.");
+    }
+
+    fn reposition_request(
+        &mut self,
+        _surface: PopupSurface,
+        _positioner: PositionerState,
+        token: u32,
+    ) {
+        println!("Popup reposition requested. token={}", token);
+    }
+}
+
+impl SeatHandler for State {
+    type KeyboardFocus = WlSurface;
+    type PointerFocus = WlSurface;
+    type TouchFocus = WlSurface;
+
+    fn seat_state(&mut self) -> &mut SeatState<Self> {
+        &mut self.seat_state
+    }
+
+    fn focus_changed(&mut self, _seat: &Seat<Self>, _focused: Option<&WlSurface>) {}
+
+    fn cursor_image(
+        &mut self,
+        _seat: &Seat<Self>,
+        _image: smithay::input::pointer::CursorImageStatus,
+    ) {
+    }
+}
+
+// ============================================================
+// Smithay delegates
+// ============================================================
+
+delegate_compositor!(State);
+
+delegate_shm!(State);
+
+delegate_xdg_shell!(State);
+
+delegate_seat!(State);
+
+// ============================================================
+// Main
+// ============================================================
+
+fn main() {
+    println!("========================================");
+    println!(" Starting CirQuare Desktop Environment");
+    println!("========================================");
+
+    // --------------------------------------------------------
+    // Wayland display
+    // --------------------------------------------------------
+
+    let mut display = Display::<State>::new().expect("Failed to create Wayland display");
+
+    let display_handle = display.handle();
+
+    println!("Wayland display created.");
+
+    // --------------------------------------------------------
+    // Compositor
+    // --------------------------------------------------------
+
+    let compositor_state = CompositorState::new::<State>(&display_handle);
+
+    println!("wl_compositor initialized.");
+
+    // --------------------------------------------------------
+    // SHM
+    // --------------------------------------------------------
+
+    let shm_state = ShmState::new::<State>(
+        &display_handle,
+        vec![
+            wayland_server::protocol::wl_shm::Format::Argb8888,
+            wayland_server::protocol::wl_shm::Format::Xrgb8888,
+        ],
+    );
+
+    println!("wl_shm initialized.");
+
+    // --------------------------------------------------------
+    // XDG Shell
+    // --------------------------------------------------------
+
+    let xdg_shell_state = XdgShellState::new::<State>(&display_handle);
+
+    let mut seat_state = SeatState::new();
+
+    let seat = seat_state.new_wl_seat(&display_handle, "cqde");
+
+    println!("xdg_wm_base initialized.");
+
+    // --------------------------------------------------------
+    // Global state
+    // --------------------------------------------------------
+
+    let mut state = State {
+        display_handle,
+        compositor_state,
+        shm_state,
+        xdg_shell_state,
+        seat_state,
+        seat,
+    };
+
+    // --------------------------------------------------------
+    // Event loop
+    // --------------------------------------------------------
+
+    let mut event_loop = EventLoop::<State>::try_new().expect("Failed to create event loop");
+
+    println!("Event loop initialized.");
+
+    // --------------------------------------------------------
+    // Wayland socket
+    // --------------------------------------------------------
+
+    let socket = ListeningSocketSource::new_auto().expect("Failed to create Wayland socket");
+
+    let socket_name = socket.socket_name();
+
+    println!("Wayland socket: {:?}", socket_name);
+
+    // --------------------------------------------------------
+    // Client connections
+    // --------------------------------------------------------
+
+    event_loop
+        .handle()
+        .insert_source(socket, |client_stream, _, state| {
+            println!("----------------------------------------");
+            println!("New Wayland client connected.");
+
+            let client_data = ClientState {
+                compositor_state: CompositorClientState::default(),
+            };
+
+            state
+                .display_handle
+                .insert_client(client_stream, Arc::new(client_data))
+                .expect("Failed to insert Wayland client");
+
+            println!("Client registered.");
+        })
+        .expect("Failed to register Wayland socket");
+
+    println!("----------------------------------------");
+    println!("CQDE Wayland compositor running.");
+    println!("----------------------------------------");
+
+    // --------------------------------------------------------
+    // Main loop
+    // --------------------------------------------------------
+
+    loop {
+        event_loop
+            .dispatch(Some(Duration::from_millis(10)), &mut state)
+            .expect("Event loop failed");
+
+        display
+            .dispatch_clients(&mut state)
+            .expect("Wayland client dispatch failed");
+
+        display
+            .flush_clients()
+            .expect("Failed to flush Wayland clients");
+    }
+}
