@@ -1,84 +1,442 @@
-# CirQuare
+# CirQuare OS
 
-Arch Linux 기반의 커스텀 리눅스 배포판입니다. XFCE4 데스크톱 환경과 Calamares 설치 프로그램을 사용합니다.
+**CirQuare OS (CQOS)** is an Arch Linux-based operating system focused on providing a simple, consistent, and modern Linux desktop experience.
 
-## 특징
+CirQuare OS is being developed with its own desktop environment, **CQDE (CirQuare Desktop Environment)**, built from the ground up using **Wayland, Smithay, and Rust**.
 
-- **베이스**: Arch Linux
-- **데스크톱 환경**: XFCE4
-- **설치 프로그램**: Calamares (자체 브랜딩 적용)
-- **부트로더**: GRUB
+> Linux, simplified.
 
-## 빌드 방법
+## Features
 
-이 프로젝트는 [archiso](https://wiki.archlinux.org/title/Archiso)를 기반으로 합니다. Arch Linux 환경(또는 WSL2 Arch Linux)에서 빌드합니다.
+* **Base**: Arch Linux
+* **Desktop Environment**: CQDE
+* **Display Protocol**: Wayland
+* **Compositor Framework**: Smithay
+* **Programming Language**: Rust
+* **Installer**: Calamares
+* **Bootloader**: GRUB
+* **Build System**: archiso
 
-### 요구 사항
+## CQDE
+
+**CQDE (CirQuare Desktop Environment)** is the desktop environment developed specifically for CirQuare OS.
+
+Unlike traditional desktop environments that are built around an existing window system, CQDE is being developed around the modern Wayland architecture.
+
+### Technology
+
+* Rust
+* Wayland
+* Smithay
+* Linux
+* EGL / Mesa
+
+### Components
+
+CQDE is designed as a collection of components rather than a single monolithic application.
+
+```text
+CQDE
+├── Compositor
+├── Window Management
+├── Shell
+├── Panel / Launcher
+├── Desktop UI
+└── System Components
+```
+
+The compositor is currently being developed using Smithay.
+
+## Architecture
+
+```text
+┌─────────────────────────────┐
+│          CQOS Apps          │
+├─────────────────────────────┤
+│            CQDE             │
+│   Shell · UI · Components   │
+├─────────────────────────────┤
+│       Wayland / Smithay     │
+├─────────────────────────────┤
+│        Linux / Mesa         │
+├─────────────────────────────┤
+│         Hardware           │
+└─────────────────────────────┘
+```
+
+CirQuare OS uses Arch Linux as its base while developing its own user-facing desktop experience on top of the Linux stack.
+
+## Building
+
+CirQuare OS is built using [archiso](https://wiki.archlinux.org/title/Archiso).
+
+Builds are currently performed in an Arch Linux environment, including Arch Linux under WSL2.
+
+### Requirements
 
 ```bash
 sudo pacman -S archiso
 ```
 
-### 로컬 패키지 저장소 준비
+Additional packages required by the current profile may need to be installed separately.
 
-Calamares는 AUR 전용 패키지이므로, 빌드 전에 로컬 저장소를 먼저 구성해야 합니다.
+### ISO Build
 
-```bash
-# yay 등 AUR 헬퍼로 calamares 빌드
-yay -S calamares
-
-# 로컬 저장소에 패키지 등록
-repo-add ~/local-repo/cirquare-local.db.tar.gz ~/local-repo/*.pkg.tar.zst
-```
-
-`work/pacman.conf`에 아래 내용이 포함되어 있어야 합니다:
-
-```ini
-[cirquare-local]
-SigLevel = Optional TrustAll
-Server = file:///home/admin/local-repo
-```
-
-### ISO 빌드
+From the project directory:
 
 ```bash
 sudo mkarchiso -v -w work -o out work
 ```
 
-빌드가 완료되면 `out/cirquare-YYYY.MM.DD-x86_64.iso` 파일이 생성됩니다.
+The generated ISO will be placed in:
 
-## 프로젝트 구조
-
+```text
+out/
 ```
+
+with a filename similar to:
+
+```text
+cirquare-YYYY.MM.DD-x86_64.iso
+```
+
+## Project Structure
+
+```text
 .
-├── airootfs/                          # 라이브 이미지에 포함될 루트 파일시스템
+├── airootfs/
 │   ├── etc/
-│   │   ├── calamares/                 # Calamares 설정 (branding, modules 등)
-│   │   ├── os-release                 # 배포판 식별 정보
-│   │   ├── passwd, group, shadow      # liveuser 계정 정보
-│   │   └── systemd/system/            # 활성화된 서비스 심볼릭 링크
-│   ├── home/liveuser/
-│   │   └── Desktop/install-cirquare.desktop
-│   └── usr/local/bin/
-│       └── cirquare-postinstall.sh    # 설치 후 커널/initramfs 복구 스크립트
-├── packages.x86_64                    # 설치될 패키지 목록
-├── profiledef.sh                      # archiso 프로필 설정 (iso 이름, 이미지 타입 등)
-└── pacman.conf                        # 사용할 저장소 목록 (로컬 저장소 포함)
+│   │   ├── calamares/
+│   │   ├── os-release
+│   │   └── systemd/
+│   ├── home/
+│   └── usr/
+│
+├── packages.x86_64
+├── profiledef.sh
+├── pacman.conf
+└── ...
 ```
 
-## 알려진 이슈 / 주의사항
+The exact structure may change as CirQuare OS and CQDE continue to evolve.
 
-- **커널 설치 문제**: archiso 라이브 이미지는 커널을 airootfs 안에 포함하지 않기 때문에, Calamares로 설치만 하면 `/boot`에 커널이 없어 GRUB rescue로 빠집니다. 이를 해결하기 위해 `shellprocess` 모듈로 설치 마지막 단계에 `cirquare-postinstall.sh`를 실행해 커널과 initramfs를 재설치합니다.
-- **로컬 저장소 보안**: 현재 로컬 저장소는 `SigLevel = Optional TrustAll`로 설정되어 있어 GPG 서명 검증을 하지 않습니다. 프로덕션 배포 전에는 반드시 서명 체계를 갖추는 것을 권장합니다.
-- **Calamares shellprocess 변수 치환**: shellprocess 모듈의 인라인 명령어에 `$repo`, `$arch` 같은 bash 변수를 직접 쓰면 오류가 발생하므로, 반드시 별도 스크립트 파일로 분리해야 합니다.
+## Project Status
 
-## 로드맵
+CirQuare OS is currently under active development.
 
-- [ ] 브랜딩 마무리 (배경화면, 로그인 화면, 아이콘 테마)
-- [ ] GPG 서명 등 로컬 저장소 보안 강화
-- [ ] 다른 VM 및 실제 하드웨어에서 추가 테스트
-- [ ] 배포용 문서 및 다운로드 페이지 준비
+### Completed
 
-## 라이선스
+* [x] Arch Linux-based system
+* [x] Custom archiso build
+* [x] Calamares integration
+* [x] CirQuare branding
+* [x] Custom icon system
+* [x] Custom system theme
+* [x] Boot and installation testing
+* [x] Initial CQDE compositor prototype
+* [x] Basic Wayland/Smithay integration
 
-TODO: 라이선스를 선택하세요 (예: GPLv3, MIT 등)
+### In Progress
+
+* [ ] CQDE window management
+* [ ] CQDE shell
+* [ ] Desktop UI
+* [ ] System panel
+* [ ] Application launcher
+* [ ] System settings
+* [ ] Hardware compatibility testing
+* [ ] CQOS default applications
+
+### Planned
+
+* [ ] Stable CQDE release
+* [ ] Complete CirQuare design system
+* [ ] Installer refinement
+* [ ] Production package repository
+* [ ] GPG package signing
+* [ ] Release infrastructure
+* [ ] Public documentation
+* [ ] First stable CQOS release
+
+## Development
+
+CirQuare OS consists of multiple components that are developed independently.
+
+```text
+CirQuare
+├── CQOS
+│   └── Operating System / Distribution
+│
+├── CQDE
+│   └── Desktop Environment
+│
+└── Future Components
+    └── CirQuare ecosystem
+```
+
+The project is currently focused on building the core operating system and CQDE before expanding into additional components.
+
+## Philosophy
+
+CirQuare OS aims to combine the flexibility of Linux with an experience that feels like a complete operating system rather than a collection of independently configured components.
+
+The goal is not to hide Linux.
+
+The goal is to make Linux easier to use.
+
+## Roadmap
+
+### Phase 1 — Foundation
+
+* [x] Arch Linux base
+* [x] ISO build system
+* [x] Installer
+* [x] Initial branding
+
+### Phase 2 — CQDE
+
+* [x] Wayland compositor prototype
+* [x] Smithay integration
+* [ ] Window management
+* [ ] Shell
+* [ ] Desktop UI
+* [ ] System components
+
+### Phase 3 — CQOS
+
+* [ ] Stable CQDE integration
+* [ ] Hardware compatibility
+* [ ] Default applications
+* [ ] System settings
+* [ ] Release engineering
+
+### Phase 4 — CirQuare Ecosystem
+
+* [ ] Additional CirQuare software
+* [ ] CirQuare services
+* [ ] Cross-device integration
+
+## License
+
+License information will be added before the first public release.
+# CirQuare OS
+
+**CirQuare OS (CQOS)** is an Arch Linux-based operating system focused on providing a simple, consistent, and modern Linux desktop experience.
+
+CirQuare OS is being developed with its own desktop environment, **CQDE (CirQuare Desktop Environment)**, built from the ground up using **Wayland, Smithay, and Rust**.
+
+> Linux, simplified.
+
+## Features
+
+* **Base**: Arch Linux
+* **Desktop Environment**: CQDE
+* **Display Protocol**: Wayland
+* **Compositor Framework**: Smithay
+* **Programming Language**: Rust
+* **Installer**: Calamares
+* **Bootloader**: GRUB
+* **Build System**: archiso
+
+## CQDE
+
+**CQDE (CirQuare Desktop Environment)** is the desktop environment developed specifically for CirQuare OS.
+
+Unlike traditional desktop environments that are built around an existing window system, CQDE is being developed around the modern Wayland architecture.
+
+### Technology
+
+* Rust
+* Wayland
+* Smithay
+* Linux
+* EGL / Mesa
+
+### Components
+
+CQDE is designed as a collection of components rather than a single monolithic application.
+
+```text
+CQDE
+├── Compositor
+├── Window Management
+├── Shell
+├── Panel / Launcher
+├── Desktop UI
+└── System Components
+```
+
+The compositor is currently being developed using Smithay.
+
+## Architecture
+
+```text
+┌─────────────────────────────┐
+│          CQOS Apps          │
+├─────────────────────────────┤
+│            CQDE             │
+│   Shell · UI · Components   │
+├─────────────────────────────┤
+│       Wayland / Smithay     │
+├─────────────────────────────┤
+│        Linux / Mesa         │
+├─────────────────────────────┤
+│         Hardware           │
+└─────────────────────────────┘
+```
+
+CirQuare OS uses Arch Linux as its base while developing its own user-facing desktop experience on top of the Linux stack.
+
+## Building
+
+CirQuare OS is built using [archiso](https://wiki.archlinux.org/title/Archiso).
+
+Builds are currently performed in an Arch Linux environment, including Arch Linux under WSL2.
+
+### Requirements
+
+```bash
+sudo pacman -S archiso
+```
+
+Additional packages required by the current profile may need to be installed separately.
+
+### ISO Build
+
+From the project directory:
+
+```bash
+sudo mkarchiso -v -w work -o out work
+```
+
+The generated ISO will be placed in:
+
+```text
+out/
+```
+
+with a filename similar to:
+
+```text
+cirquare-YYYY.MM.DD-x86_64.iso
+```
+
+## Project Structure
+
+```text
+.
+├── airootfs/
+│   ├── etc/
+│   │   ├── calamares/
+│   │   ├── os-release
+│   │   └── systemd/
+│   ├── home/
+│   └── usr/
+│
+├── packages.x86_64
+├── profiledef.sh
+├── pacman.conf
+└── ...
+```
+
+The exact structure may change as CirQuare OS and CQDE continue to evolve.
+
+## Project Status
+
+CirQuare OS is currently under active development.
+
+### Completed
+
+* [x] Arch Linux-based system
+* [x] Custom archiso build
+* [x] Calamares integration
+* [x] CirQuare branding
+* [x] Custom icon system
+* [x] Custom system theme
+* [x] Boot and installation testing
+* [x] Initial CQDE compositor prototype
+* [x] Basic Wayland/Smithay integration
+
+### In Progress
+
+* [ ] CQDE window management
+* [ ] CQDE shell
+* [ ] Desktop UI
+* [ ] System panel
+* [ ] Application launcher
+* [ ] System settings
+* [ ] Hardware compatibility testing
+* [ ] CQOS default applications
+
+### Planned
+
+* [ ] Stable CQDE release
+* [ ] Complete CirQuare design system
+* [ ] Installer refinement
+* [ ] Production package repository
+* [ ] GPG package signing
+* [ ] Release infrastructure
+* [ ] Public documentation
+* [ ] First stable CQOS release
+
+## Development
+
+CirQuare OS consists of multiple components that are developed independently.
+
+```text
+CirQuare
+├── CQOS
+│   └── Operating System / Distribution
+│
+├── CQDE
+│   └── Desktop Environment
+│
+└── Future Components
+    └── CirQuare ecosystem
+```
+
+The project is currently focused on building the core operating system and CQDE before expanding into additional components.
+
+## Philosophy
+
+CirQuare OS aims to combine the flexibility of Linux with an experience that feels like a complete operating system rather than a collection of independently configured components.
+
+The goal is not to hide Linux.
+
+The goal is to make Linux easier to use.
+
+## Roadmap
+
+### Phase 1 — Foundation
+
+* [x] Arch Linux base
+* [x] ISO build system
+* [x] Installer
+* [x] Initial branding
+
+### Phase 2 — CQDE
+
+* [x] Wayland compositor prototype
+* [x] Smithay integration
+* [ ] Window management
+* [ ] Shell
+* [ ] Desktop UI
+* [ ] System components
+
+### Phase 3 — CQOS
+
+* [ ] Stable CQDE integration
+* [ ] Hardware compatibility
+* [ ] Default applications
+* [ ] System settings
+* [ ] Release engineering
+
+### Phase 4 — CirQuare Environment
+
+* [ ] Additional CirQuare software
+* [ ] CirQuare services
+* [ ] Cross-device integration
+
+## License
+
+License information will be added before the first public release.
