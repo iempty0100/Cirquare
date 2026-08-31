@@ -283,7 +283,7 @@ impl WindowManager {
         let x = location.x;
         let y = location.y;
 
-        const BORDER: f64 = 8.0;
+        const BORDER: f64 = 10.0;
 
         let near_left = x >= left - BORDER && x <= left + BORDER;
 
