@@ -176,6 +176,30 @@ impl WindowManager {
     }
 
     // ========================================================
+    // Titlebar
+    // ========================================================
+
+    pub fn is_titlebar(&self, surface: &WlSurface, location: Point<f64, Logical>) -> bool {
+        let Some(window) = self
+            .windows
+            .iter()
+            .find(|window| window.surface == *surface)
+        else {
+            return false;
+        };
+
+        let left = (window.position.x + window.geometry_offset.x) as f64;
+        let top = (window.position.y + window.geometry_offset.y) as f64;
+        let right = left + window.geometry_size.w as f64;
+
+        const TITLEBAR_HEIGHT: f64 = 32.0;
+
+        let bottom = top + TITLEBAR_HEIGHT;
+
+        location.x >= left && location.x < right && location.y >= top && location.y < bottom
+    }
+
+    // ========================================================
     // Size
     // ========================================================
 
@@ -283,7 +307,7 @@ impl WindowManager {
         let x = location.x;
         let y = location.y;
 
-        const BORDER: f64 = 10.0;
+        const BORDER: f64 = 8.0;
 
         let near_left = x >= left - BORDER && x <= left + BORDER;
 
@@ -320,7 +344,7 @@ impl WindowManager {
     // Windows
     // ========================================================
 
-    pub fn windows(&self) -> impl Iterator<Item = &Window> {
+    pub fn windows(&self) -> impl DoubleEndedIterator<Item = &Window> {
         self.windows.iter()
     }
 }

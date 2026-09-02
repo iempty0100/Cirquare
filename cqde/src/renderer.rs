@@ -45,13 +45,13 @@ pub fn render(
         // ====================================================
 
         let elements = state
-            .xdg_shell_state
-            .toplevel_surfaces()
-            .iter()
-            .flat_map(|surface| {
-                let wl_surface = surface.wl_surface();
+            .wm
+            .windows()
+            .rev()
+            .flat_map(|window| {
+                let wl_surface = &window.surface;
 
-                let position = state.wm.position(wl_surface).unwrap_or((0, 0).into());
+                let position = window.position;
 
                 render_elements_from_surface_tree(
                     renderer,
@@ -94,8 +94,8 @@ pub fn render(
 
         let frame_time = state.start_time.elapsed().as_millis() as u32;
 
-        for surface in state.xdg_shell_state.toplevel_surfaces() {
-            send_frames_surface_tree(surface.wl_surface(), frame_time);
+        for window in state.wm.windows() {
+            send_frames_surface_tree(&window.surface, frame_time);
         }
     }
 

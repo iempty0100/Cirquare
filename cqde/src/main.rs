@@ -13,10 +13,7 @@ use std::time::Duration;
 use calloop::EventLoop;
 
 use smithay::{
-    backend::{
-        renderer::gles::GlesRenderer,
-        winit::{self},
-    },
+    backend::{renderer::gles::GlesRenderer, winit},
     input::SeatState,
     wayland::{
         compositor::{CompositorClientState, CompositorState},
@@ -30,36 +27,31 @@ use wayland_server::Display;
 
 use crate::{client::ClientState, state::State, wm::WindowManager};
 
-// ============================================================
-// Main
-// ============================================================
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("========================================");
     println!(" Starting CirQuare Desktop Environment");
     println!("========================================");
 
-    // ========================================================
+    // ============================================================
     // Wayland Display
-    // ========================================================
+    // ============================================================
 
     let mut display = Display::<State>::new()?;
-
     let display_handle = display.handle();
 
     println!("Wayland display created.");
 
-    // ========================================================
+    // ============================================================
     // Compositor
-    // ========================================================
+    // ============================================================
 
     let compositor_state = CompositorState::new::<State>(&display_handle);
 
     println!("wl_compositor initialized.");
 
-    // ========================================================
+    // ============================================================
     // SHM
-    // ========================================================
+    // ============================================================
 
     let shm_state = ShmState::new::<State>(
         &display_handle,
@@ -71,17 +63,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("wl_shm initialized.");
 
-    // ========================================================
+    // ============================================================
     // XDG Shell
-    // ========================================================
+    // ============================================================
 
     let xdg_shell_state = XdgShellState::new::<State>(&display_handle);
 
     println!("xdg_wm_base initialized.");
 
-    // ========================================================
+    // ============================================================
     // Seat
-    // ========================================================
+    // ============================================================
 
     let mut seat_state = SeatState::<State>::new();
 
@@ -89,9 +81,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("wl_seat initialized.");
 
-    // ========================================================
-    // CQDE State
-    // ========================================================
+    // ============================================================
+    // State
+    // ============================================================
 
     let mut state = State {
         display_handle: display_handle.clone(),
@@ -103,7 +95,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         seat_state,
         seat,
 
+        // Keyboard is initialized immediately below.
+        keyboard: None,
+
         focused_surface: None,
+
         cursor_position: (0.0, 0.0).into(),
 
         wm: WindowManager::new(),
@@ -115,6 +111,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         resizing: false,
         resize_surface: None,
         resize_edge: None,
+
         resize_start: (0.0, 0.0).into(),
         resize_initial_position: (0, 0).into(),
         resize_initial_size: (600, 400).into(),
@@ -122,43 +119,41 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         start_time: std::time::Instant::now(),
     };
 
-    // ========================================================
+    // ============================================================
     // Keyboard
-    // ========================================================
+    // ============================================================
 
     let keyboard = state
         .seat
         .add_keyboard(Default::default(), 200, 200)
         .expect("Failed to create keyboard");
 
-    // ========================================================
+    state.keyboard = Some(keyboard);
+
+    // ============================================================
     // Pointer
-    // ========================================================
+    // ============================================================
 
     let pointer = state.seat.add_pointer();
 
     println!("Keyboard initialized.");
     println!("Pointer initialized.");
 
-    // ========================================================
-    // Calloop Event Loop
-    // ========================================================
+    // ============================================================
+    // Event Loop
+    // ============================================================
 
     let mut event_loop = EventLoop::<State>::try_new()?;
 
     println!("Event loop initialized.");
 
-    // ========================================================
+    // ============================================================
     // Wayland Socket
-    // ========================================================
+    // ============================================================
 
     let socket = ListeningSocketSource::new_auto()?;
 
-    println!("Wayland socket: {:?}", socket.socket_name());
-
-    // ========================================================
-    // Wayland Client Connections
-    // ========================================================
+    println!("Wayland display socket: {:?}", socket.socket_name());
 
     event_loop
         .handle()
@@ -178,9 +173,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("Client registered.");
         })?;
 
-    // ========================================================
+    // ============================================================
     // Winit Backend
-    // ========================================================
+    // ============================================================
 
     println!("Initializing winit backend...");
 
@@ -188,40 +183,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Winit backend initialized.");
 
-    // ========================================================
+    // ============================================================
     // Main Loop
-    // ========================================================
+    // ============================================================
 
     loop {
-        // ====================================================
-        // Winit / Input
-        // ====================================================
-
-        if !input::process_winit_events(&backend, &mut winit, &mut state, &keyboard, &pointer) {
+        if !input::process_winit_events(&backend, &mut winit, &mut state, &pointer) {
             return Ok(());
         }
 
-        // ====================================================
-        // Wayland Event Loop
-        // ====================================================
-
         event_loop.dispatch(Some(Duration::from_millis(1)), &mut state)?;
-
-        // ====================================================
-        // Wayland Clients
-        // ====================================================
 
         display.dispatch_clients(&mut state)?;
 
-        // ====================================================
-        // Rendering
-        // ====================================================
-
         renderer::render(&mut backend, &mut state)?;
-
-        // ====================================================
-        // Flush Clients
-        // ====================================================
 
         display.flush_clients()?;
     }

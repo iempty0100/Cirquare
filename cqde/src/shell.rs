@@ -21,45 +21,65 @@ impl XdgShellHandler for State {
         &mut self.xdg_shell_state
     }
 
-    fn new_toplevel(&mut self, surface: ToplevelSurface) {
-        println!(
-            "New toplevel surface created: {:?}",
-            surface.wl_surface().id()
-        );
+    // ========================================================
+    // New Toplevel
+    // ========================================================
 
-        // ========================================================
-        // Register window with Window Manager
-        // ========================================================
+    fn new_toplevel(&mut self, surface: ToplevelSurface) {
+        let wl_surface = surface.wl_surface().clone();
+
+        println!("New toplevel surface created: {:?}", wl_surface.id());
+
+        // ====================================================
+        // Register window
+        // ====================================================
 
         self.wm.add_window(surface.clone());
 
-        // ========================================================
+        // ====================================================
         // Initial window state
-        // ========================================================
+        // ====================================================
 
         surface.with_pending_state(|state| {
             state.states.set(xdg_toplevel::State::Activated);
 
-            // Initial size proposed by CQDE.
             state.size = Some((600, 400).into());
         });
 
-        // ========================================================
+        // ====================================================
         // Initial configure
-        // ========================================================
+        // ====================================================
 
         surface.send_configure();
 
         println!("Configure sent.");
+
+        // ====================================================
+        // Keyboard focus
+        // ====================================================
+
+        self.focus_window(&wl_surface, Serial::from(0));
     }
+
+    // ========================================================
+    // Popup
+    // ========================================================
 
     fn new_popup(&mut self, surface: PopupSurface, _positioner: PositionerState) {
         println!("New popup surface created: {:?}", surface.wl_surface().id());
     }
 
+    // ========================================================
+    // Popup Grab
+    // ========================================================
+
     fn grab(&mut self, _surface: PopupSurface, _seat: WlSeat, _serial: Serial) {
         println!("Popup grab requested.");
     }
+
+    // ========================================================
+    // Popup Reposition
+    // ========================================================
 
     fn reposition_request(
         &mut self,
