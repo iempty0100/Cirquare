@@ -1,0 +1,6 @@
+[Hotkey]
+ModifierOnlyKeyTimeout=250
+
+[Hotkey/TriggerKeys]
+0=Alt_L
+1=Alt_R

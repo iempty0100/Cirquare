@@ -1,36 +1,46 @@
-# archiso 빌드 산출물
+# ============================================================
+# Archiso generated build files
+# ============================================================
+
 work/work/
 work/out/
 work/iso/
 *.iso
 
-# 로컬 AUR 패키지 저장소
+# ============================================================
+# Local AUR / package repository
+# ============================================================
+
 local-repo/
 *.pkg.tar.zst
 *.pkg.tar.xz
 *.pkg.tar.zst.sig
-local-repo/
 
-# 임시/캐시 파일
+# ============================================================
+# Temporary / cache files
+# ============================================================
+
 *.log
 *.tmp
 .cache/
+.cargo/
 
-# Shell/editor/local configuration
+# ============================================================
+# Shell / editor / local configuration
+# ============================================================
+
 .bash_history
 .gitconfig
-.lesshst/
+.lesshst
 .vscode/
 .vscode-remote-containers/
 .idea/
 *.swp
 .DS_Store
 
+# ============================================================
 # Rust
+# ============================================================
+
 target/
 **/target/
-
-# Temporary files
-*.log
-*.tmp
-.cache/
