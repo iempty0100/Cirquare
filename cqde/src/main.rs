@@ -1,5 +1,6 @@
 mod client;
 mod compositor;
+mod decoration;
 mod input;
 mod renderer;
 mod shell;
@@ -17,7 +18,7 @@ use smithay::{
     input::SeatState,
     wayland::{
         compositor::{CompositorClientState, CompositorState},
-        shell::xdg::XdgShellState,
+        shell::xdg::{XdgShellState, decoration::XdgDecorationState},
         shm::ShmState,
         socket::ListeningSocketSource,
     },
@@ -72,6 +73,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("xdg_wm_base initialized.");
 
     // ============================================================
+    // XDG Decoration
+    // ============================================================
+
+    let xdg_decoration_state = XdgDecorationState::new::<State>(&display_handle);
+
+    println!("zxdg_decoration_manager_v1 initialized.");
+
+    // ============================================================
     // Seat
     // ============================================================
 
@@ -91,11 +100,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         compositor_state,
         shm_state,
         xdg_shell_state,
+        xdg_decoration_state,
 
         seat_state,
         seat,
 
-        // Keyboard is initialized immediately below.
         keyboard: None,
 
         focused_surface: None,
