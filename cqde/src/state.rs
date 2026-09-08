@@ -3,7 +3,11 @@ use std::time::Instant;
 use smithay::{
     input::{Seat, SeatState, keyboard::KeyboardHandle},
     utils::{Logical, Point, Serial, Size},
-    wayland::{compositor::CompositorState, shell::xdg::XdgShellState, shm::ShmState},
+    wayland::{
+        compositor::CompositorState,
+        shell::xdg::{XdgShellState, decoration::XdgDecorationState},
+        shm::ShmState,
+    },
 };
 
 use wayland_server::{DisplayHandle, Resource, protocol::wl_surface::WlSurface};
@@ -16,6 +20,7 @@ pub struct State {
     pub compositor_state: CompositorState,
     pub shm_state: ShmState,
     pub xdg_shell_state: XdgShellState,
+    pub xdg_decoration_state: XdgDecorationState,
 
     pub seat_state: SeatState<Self>,
     pub seat: Seat<Self>,
@@ -30,21 +35,25 @@ pub struct State {
     // ============================================================
     // Focus
     // ============================================================
+
     pub focused_surface: Option<WlSurface>,
 
     // ============================================================
     // Cursor
     // ============================================================
+
     pub cursor_position: Point<f64, Logical>,
 
     // ============================================================
     // Window Manager
     // ============================================================
+
     pub wm: WindowManager,
 
     // ============================================================
     // Window Dragging
     // ============================================================
+
     pub dragging: bool,
     pub drag_surface: Option<WlSurface>,
     pub drag_offset: Point<f64, Logical>,
@@ -52,6 +61,7 @@ pub struct State {
     // ============================================================
     // Window Resizing
     // ============================================================
+
     pub resizing: bool,
     pub resize_surface: Option<WlSurface>,
     pub resize_edge: Option<ResizeEdge>,
@@ -63,6 +73,7 @@ pub struct State {
     // ============================================================
     // Frame timing
     // ============================================================
+
     pub start_time: Instant,
 }
 
@@ -72,34 +83,13 @@ impl State {
     // ============================================================
 
     pub fn focus_window(&mut self, surface: &WlSurface, serial: Serial) {
-        // --------------------------------------------------------
-        // Make sure this surface is actually managed.
-        // --------------------------------------------------------
-
         if self.wm.position(surface).is_none() {
             return;
         }
 
-        // --------------------------------------------------------
-        // WM focus / Z-order
-        // --------------------------------------------------------
-
         self.wm.focus(surface);
-
-        // --------------------------------------------------------
-        // Compositor-side focus
-        // --------------------------------------------------------
-
         self.focused_surface = Some(surface.clone());
 
-        // --------------------------------------------------------
-        // Wayland keyboard focus
-        // --------------------------------------------------------
-
-        //
-        // Clone the handle first because set_focus() needs
-        // &mut State at the same time.
-        //
         if let Some(keyboard) = self.keyboard.clone() {
             keyboard.set_focus(self, Some(surface.clone()), serial);
         }
